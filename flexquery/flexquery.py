@@ -100,7 +100,12 @@ def download_xml(token: str, report_number: str):
     return tree
 
 
-def filter_transactions_by_date_range(root: "_ElementTree[_Element]", start_date: datetime, end_date: datetime):
+def filter_transactions_by_date_range(
+    root: "_ElementTree[_Element]",
+    start_date: datetime,
+    end_date: datetime,
+    exclude_deposits_withdrawals: bool = False,
+):
     log.debug(f"Filtering transactions from {start_date.date()} to {end_date.date()}")
     flex_statement = root.find(".//FlexStatement")
     if flex_statement is None:
@@ -119,14 +124,20 @@ def filter_transactions_by_date_range(root: "_ElementTree[_Element]", start_date
     if cash_transactions is not None:
         for transaction in list(cash_transactions):
             transaction_date_str = transaction.get("dateTime", "")
+            transaction_type = transaction.get("type", "")
             if transaction_date_str:
-                # Choose format based on presence of time component
                 if ";" in transaction_date_str:
                     transaction_date = datetime.strptime(transaction_date_str, "%Y%m%d;%H%M%S")
                 else:
                     transaction_date = datetime.strptime(transaction_date_str, "%Y%m%d")
 
+                # Apply date filtering
                 if not (start_date <= transaction_date <= end_date):
+                    cash_transactions.remove(transaction)
+                    continue
+
+                # Exclude Deposits/Withdrawals if specified
+                if exclude_deposits_withdrawals and transaction_type == "Deposits/Withdrawals":
                     cash_transactions.remove(transaction)
 
     write_xml(f"{start_date.strftime('%Y%m%d')}-{end_date.strftime('%Y%m%d')}_statement.xml", root)
@@ -200,7 +211,7 @@ def print_transactions(root: _Element):
     type=click.DateTime(formats=["%Y-%m-%d"]),
     help="Start Date",
     prompt=True,
-    default=lambda: (date.today() - relativedelta(months=1)).strftime("%Y-%m-%d"),
+    default=lambda: (date.today() - relativedelta(days=7)).strftime("%Y-%m-%d"),
     show_default=True,
     show_envvar=True,
     required=True,
@@ -226,12 +237,19 @@ def print_transactions(root: _Element):
     show_envvar=True,
     required=True,
 )
-def main(report_number, start_date, end_date, token, auto_envvar_prefix="FLEXQUERY"):
+@click.option(
+    "-x",
+    "--exclude-deposits-withdrawals",
+    is_flag=True,
+    default=False,
+    help="Exclude transactions of type 'Deposits/Withdrawals'",
+)
+def main(report_number, start_date, end_date, token, exclude_deposits_withdrawals):
     if not token:
         raise EnvironmentError("ERROR: FLEXQUERY_TOKEN environment variable is not set.")
 
     xml_content = download_xml(token, report_number)
-    filtered_xml_content = filter_transactions_by_date_range(xml_content, start_date, end_date)
+    filtered_xml_content = filter_transactions_by_date_range(xml_content, start_date, end_date, exclude_deposits_withdrawals)
     print_transactions(filtered_xml_content)
 
 
