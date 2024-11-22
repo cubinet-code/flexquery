@@ -140,7 +140,10 @@ def filter_transactions_by_date_range(
                 if exclude_deposits_withdrawals and transaction_type == "Deposits/Withdrawals":
                     cash_transactions.remove(transaction)
 
-    write_xml(f"{start_date.strftime('%Y%m%d')}-{end_date.strftime('%Y%m%d')}_statement.xml", root)
+    write_xml(
+        f"{start_date.strftime('%Y%m%d')}-{end_date.strftime('%Y%m%d')}_statement.xml",
+        root,
+    )
     return root
 
 
