@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flexquery"
+version = "0.1.3"
+description = "A CLI tool for processing and filtering IB Flex reports"
+readme = "README.md"
+requires-python = ">=3.7"
+license = "MIT"
+authors = [{ name = "Oliver Fueckert", email = "oliver@fueckert.com" }]
+keywords = ["CLI", "IB Flex reports", "finance"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = ["click", "loguru", "lxml", "urllib3", "tabulate"]
+
+[project.urls]
+Homepage = "https://github.com/cubinet-code/flexquery"
+
+[tool.setuptools]
+packages = ["flexquery"]
+
+[project.scripts]
+flexquery = "flexquery.flexquery:main"
+transform-csv = "flexquery.transform_csv:main"
